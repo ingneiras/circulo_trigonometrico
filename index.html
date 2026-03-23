@@ -1,0 +1,709 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Círculo Trigonométrico</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0f0f1a;
+      color: #e0e0f0;
+      font-family: 'Segoe UI', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 16px;
+      padding-bottom: 32px;
+    }
+
+    h1 {
+      font-size: clamp(1.1rem, 5vw, 1.6rem);
+      margin-bottom: 4px;
+      background: linear-gradient(90deg, #7eb8f7, #c084fc);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: 1px;
+      text-align: center;
+    }
+
+    .subtitle {
+      font-size: clamp(0.72rem, 3vw, 0.85rem);
+      color: #888;
+      margin-bottom: 14px;
+      text-align: center;
+    }
+
+    /* ── Layout principal ── */
+    .container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      justify-content: center;
+      align-items: flex-start;
+      width: 100%;
+      max-width: 1100px;
+    }
+
+    /* ── Canvas ── */
+    .canvas-wrap {
+      display: flex;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    #circleCanvas {
+      cursor: crosshair;
+      border-radius: 14px;
+      background: #13132a;
+      box-shadow: 0 0 30px #7eb8f720;
+      touch-action: none;
+      /* tamaño se aplica por JS */
+      max-width: 100%;
+    }
+
+    /* ── Panel ── */
+    .panel {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      flex: 1;
+      min-width: 230px;
+      max-width: 320px;
+    }
+
+    /* En móvil el panel ocupa todo el ancho */
+    @media (max-width: 600px) {
+      .panel {
+        max-width: 100%;
+        width: 100%;
+      }
+    }
+
+    .card {
+      background: #1a1a30;
+      border: 1px solid #2a2a4a;
+      border-radius: 14px;
+      padding: 14px 16px;
+    }
+
+    .card h3 {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: #888;
+      margin-bottom: 10px;
+    }
+
+    /* Ángulo */
+    .angle-display { display: flex; flex-direction: column; gap: 6px; }
+
+    .angle-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .angle-label { font-size: 0.82rem; color: #aaa; }
+
+    .angle-value {
+      font-size: clamp(1rem, 4vw, 1.25rem);
+      font-weight: 700;
+      color: #f8c;
+    }
+
+    .angle-value.rad {
+      font-size: clamp(0.85rem, 3.5vw, 1rem);
+      color: #a8d8ff;
+    }
+
+    /* Slider */
+    .slider-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    input[type=range] {
+      flex: 1;
+      accent-color: #c084fc;
+      height: 6px;        /* más fácil de tocar en móvil */
+      cursor: pointer;
+    }
+
+    .slider-val {
+      font-size: 0.82rem;
+      color: #c084fc;
+      width: 38px;
+      text-align: right;
+    }
+
+    /* Razones trig */
+    .trig-grid { display: flex; flex-direction: column; gap: 9px; }
+
+    .trig-item { display: flex; align-items: center; gap: 8px; }
+
+    .trig-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+    .trig-name { font-size: 0.88rem; color: #ccc; width: 64px; }
+
+    .trig-bar-wrap {
+      flex: 1;
+      height: 8px;
+      background: #2a2a4a;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .trig-bar { height: 100%; border-radius: 4px; transition: width 0.05s, background 0.05s; }
+
+    .trig-num {
+      font-size: 0.84rem;
+      font-weight: 600;
+      width: 52px;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Cuadrante */
+    .quad-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+
+    .quad-box {
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: 0.75rem;
+      border: 2px solid transparent;
+      transition: border-color 0.2s, background 0.2s;
+      color: #aaa;
+    }
+
+    .quad-box.active { color: #fff; font-weight: 600; }
+    .quad-box .qnum { font-size: 0.95rem; font-weight: 700; }
+
+    /* Toggles */
+    .toggles { display: flex; flex-wrap: wrap; gap: 7px; }
+
+    .toggle-btn {
+      padding: 7px 13px;   /* más alto para el dedo */
+      border-radius: 20px;
+      border: 1px solid #3a3a5a;
+      background: #1a1a30;
+      color: #aaa;
+      font-size: 0.76rem;
+      cursor: pointer;
+      transition: all 0.15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .toggle-btn.on { background: #2a2060; border-color: #7eb8f7; color: #7eb8f7; }
+
+    /* Tabla */
+    .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 0.76rem; }
+
+    th {
+      color: #888;
+      font-weight: 600;
+      padding: 5px 5px;
+      text-align: center;
+      border-bottom: 1px solid #2a2a4a;
+    }
+
+    td {
+      padding: 6px 5px;   /* más alto para el dedo */
+      text-align: center;
+      border-bottom: 1px solid #1e1e38;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    tr:hover td { background: #22223a; }
+    tr.highlighted td { background: #2a2060; color: #fff; }
+  </style>
+</head>
+<body>
+
+<h1>Círculo Trigonométrico</h1>
+<p class="subtitle">Arrastra el punto o usa el slider para explorar</p>
+
+<div class="container">
+
+  <div class="canvas-wrap">
+    <canvas id="circleCanvas"></canvas>
+  </div>
+
+  <div class="panel">
+
+    <!-- Ángulo -->
+    <div class="card">
+      <h3>Ángulo</h3>
+      <div class="angle-display">
+        <div class="angle-row">
+          <span class="angle-label">Grados</span>
+          <span class="angle-value" id="dispDeg">0°</span>
+        </div>
+        <div class="angle-row">
+          <span class="angle-label">Radianes</span>
+          <span class="angle-value rad" id="dispRad">0</span>
+        </div>
+        <div class="angle-row">
+          <span class="angle-label">Radianes (decimal)</span>
+          <span class="angle-value rad" id="dispRadDec">0.000</span>
+        </div>
+      </div>
+      <div class="slider-wrap">
+        <input type="range" id="angleSlider" min="0" max="360" step="1" value="0" />
+        <span class="slider-val" id="sliderVal">0°</span>
+      </div>
+    </div>
+
+    <!-- Razones trig -->
+    <div class="card">
+      <h3>Razones Trigonométricas</h3>
+      <div class="trig-grid">
+        <div class="trig-item">
+          <div class="trig-dot" style="background:#4ade80"></div>
+          <span class="trig-name">cos(θ)</span>
+          <div class="trig-bar-wrap"><div class="trig-bar" id="barCos" style="background:#4ade80;width:100%"></div></div>
+          <span class="trig-num" id="valCos" style="color:#4ade80">1.000</span>
+        </div>
+        <div class="trig-item">
+          <div class="trig-dot" style="background:#f87171"></div>
+          <span class="trig-name">sen(θ)</span>
+          <div class="trig-bar-wrap"><div class="trig-bar" id="barSin" style="background:#f87171;width:50%"></div></div>
+          <span class="trig-num" id="valSin" style="color:#f87171">0.000</span>
+        </div>
+        <div class="trig-item">
+          <div class="trig-dot" style="background:#facc15"></div>
+          <span class="trig-name">tan(θ)</span>
+          <div class="trig-bar-wrap"><div class="trig-bar" id="barTan" style="background:#facc15;width:50%"></div></div>
+          <span class="trig-num" id="valTan" style="color:#facc15">0.000</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cuadrante -->
+    <div class="card">
+      <h3>Cuadrante</h3>
+      <div class="quad-grid">
+        <div class="quad-box" id="q2" style="background:#1a2a1a;border-color:#2a4a2a">
+          <div class="qnum">II</div><div>cos − , sen +</div>
+        </div>
+        <div class="quad-box" id="q1" style="background:#1a2a1a;border-color:#2a4a2a">
+          <div class="qnum">I</div><div>cos + , sen +</div>
+        </div>
+        <div class="quad-box" id="q3" style="background:#2a1a1a;border-color:#4a2a2a">
+          <div class="qnum">III</div><div>cos − , sen −</div>
+        </div>
+        <div class="quad-box" id="q4" style="background:#2a1a1a;border-color:#4a2a2a">
+          <div class="qnum">IV</div><div>cos + , sen −</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Opciones -->
+    <div class="card">
+      <h3>Mostrar / Ocultar</h3>
+      <div class="toggles">
+        <button class="toggle-btn on" data-key="projections">Proyecciones</button>
+        <button class="toggle-btn on" data-key="labels">Ángulos notables</button>
+        <button class="toggle-btn on" data-key="arc">Arco</button>
+        <button class="toggle-btn on" data-key="tangent">Tangente</button>
+        <button class="toggle-btn on" data-key="grid">Cuadrícula</button>
+      </div>
+    </div>
+
+    <!-- Tabla -->
+    <div class="card">
+      <h3>Ángulos Notables</h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>°</th><th>rad</th><th>cos</th><th>sen</th><th>tan</th></tr>
+          </thead>
+          <tbody id="notableTbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+//  DATOS
+// ═══════════════════════════════════════════════════════
+const NOTABLES = [
+  { deg: 0,   rad: '0',     cos: '1',     sin: '0',     tan: '0' },
+  { deg: 30,  rad: 'π/6',   cos: '√3/2',  sin: '1/2',   tan: '√3/3' },
+  { deg: 45,  rad: 'π/4',   cos: '√2/2',  sin: '√2/2',  tan: '1' },
+  { deg: 60,  rad: 'π/3',   cos: '1/2',   sin: '√3/2',  tan: '√3' },
+  { deg: 90,  rad: 'π/2',   cos: '0',     sin: '1',     tan: '∞' },
+  { deg: 120, rad: '2π/3',  cos: '-1/2',  sin: '√3/2',  tan: '-√3' },
+  { deg: 135, rad: '3π/4',  cos: '-√2/2', sin: '√2/2',  tan: '-1' },
+  { deg: 150, rad: '5π/6',  cos: '-√3/2', sin: '1/2',   tan: '-√3/3' },
+  { deg: 180, rad: 'π',     cos: '-1',    sin: '0',     tan: '0' },
+  { deg: 210, rad: '7π/6',  cos: '-√3/2', sin: '-1/2',  tan: '√3/3' },
+  { deg: 225, rad: '5π/4',  cos: '-√2/2', sin: '-√2/2', tan: '1' },
+  { deg: 240, rad: '4π/3',  cos: '-1/2',  sin: '-√3/2', tan: '√3' },
+  { deg: 270, rad: '3π/2',  cos: '0',     sin: '-1',    tan: '∞' },
+  { deg: 300, rad: '5π/3',  cos: '1/2',   sin: '-√3/2', tan: '-√3' },
+  { deg: 315, rad: '7π/4',  cos: '√2/2',  sin: '-√2/2', tan: '-1' },
+  { deg: 330, rad: '11π/6', cos: '√3/2',  sin: '-1/2',  tan: '-√3/3' },
+  { deg: 360, rad: '2π',    cos: '1',     sin: '0',     tan: '0' },
+];
+
+const RAD_LABELS = {
+  0:'0',30:'π/6',45:'π/4',60:'π/3',90:'π/2',
+  120:'2π/3',135:'3π/4',150:'5π/6',180:'π',
+  210:'7π/6',225:'5π/4',240:'4π/3',270:'3π/2',
+  300:'5π/3',315:'7π/4',330:'11π/6',360:'2π'
+};
+
+// ═══════════════════════════════════════════════════════
+//  ESTADO
+// ═══════════════════════════════════════════════════════
+let angleDeg = 0;
+let show = { projections: true, labels: true, arc: true, tangent: true, grid: true };
+let dragging = false;
+
+// ═══════════════════════════════════════════════════════
+//  CANVAS RESPONSIVO
+// ═══════════════════════════════════════════════════════
+const canvas = document.getElementById('circleCanvas');
+const ctx    = canvas.getContext('2d');
+
+// Variables dinámicas (se recalculan al redimensionar)
+let CX, CY, R;
+
+function resizeCanvas() {
+  const maxSize = Math.min(
+    window.innerWidth - 32,   // margen lateral
+    500                        // máximo en escritorio
+  );
+  const size = Math.max(maxSize, 260);  // mínimo 260px
+  canvas.width  = size;
+  canvas.height = size;
+  CX = size / 2;
+  CY = size / 2;
+  R  = size * 0.38;           // radio = 38% del tamaño
+  draw();
+}
+
+window.addEventListener('resize', resizeCanvas);
+
+// ═══════════════════════════════════════════════════════
+//  TABLA
+// ═══════════════════════════════════════════════════════
+const tbody = document.getElementById('notableTbody');
+NOTABLES.forEach(n => {
+  const tr = document.createElement('tr');
+  tr.dataset.deg = n.deg;
+  tr.innerHTML = `<td>${n.deg}°</td><td>${n.rad}</td><td>${n.cos}</td><td>${n.sin}</td><td>${n.tan}</td>`;
+  tr.addEventListener('click', () => { setAngle(n.deg); });
+  tbody.appendChild(tr);
+});
+
+// ═══════════════════════════════════════════════════════
+//  DRAW
+// ═══════════════════════════════════════════════════════
+function draw() {
+  if (!CX) return;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  const rad = angleDeg * Math.PI / 180;
+  const px  = CX + R * Math.cos(-rad);
+  const py  = CY + R * Math.sin(-rad);
+  const fs  = Math.max(9, R * 0.058);   // font size proporcional
+
+  // ── Cuadrícula ──
+  if (show.grid) {
+    const step = Math.round(R / 5);
+    ctx.strokeStyle = '#1e1e38';
+    ctx.lineWidth = 1;
+    for (let x = CX % step; x < canvas.width; x += step) {
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
+    }
+    for (let y = CY % step; y < canvas.height; y += step) {
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+    }
+  }
+
+  // ── Ejes ──
+  ctx.strokeStyle = '#3a3a6a';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(8, CY); ctx.lineTo(canvas.width - 8, CY); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(CX, 8); ctx.lineTo(CX, canvas.height - 8); ctx.stroke();
+  drawArrow(canvas.width - 8, CY, 7, 0);
+  drawArrow(CX, 8, 7, -Math.PI / 2);
+
+  // Etiquetas de ejes
+  ctx.fillStyle = '#4a4a7a';
+  ctx.font = `${fs}px Segoe UI`;
+  ctx.fillText('x', canvas.width - 16, CY - 6);
+  ctx.fillText('y', CX + 6, 16);
+  ctx.fillText('1',  CX + R + 3,  CY - 5);
+  ctx.fillText('-1', CX - R - fs*2, CY - 5);
+  ctx.fillText('1',  CX + 4, CY - R + fs);
+  ctx.fillText('-1', CX + 4, CY + R + fs);
+
+  // ── Cuadrantes coloreados ──
+  const quadColors = [
+    { start:   0, end:  90, color: '#1a3a2a' },
+    { start:  90, end: 180, color: '#1a1a3a' },
+    { start: 180, end: 270, color: '#3a1a1a' },
+    { start: 270, end: 360, color: '#2a1a3a' },
+  ];
+  quadColors.forEach(q => {
+    ctx.beginPath();
+    ctx.moveTo(CX, CY);
+    ctx.arc(CX, CY, R, -q.start * Math.PI / 180, -q.end * Math.PI / 180, true);
+    ctx.closePath();
+    ctx.fillStyle = q.color;
+    ctx.fill();
+  });
+
+  // ── Arco ──
+  if (show.arc) {
+    ctx.beginPath();
+    ctx.arc(CX, CY, R * 0.21, 0, -rad, rad >= 0);
+    ctx.strokeStyle = '#c084fc';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+
+  // ── Círculo unitario ──
+  ctx.beginPath();
+  ctx.arc(CX, CY, R, 0, 2 * Math.PI);
+  ctx.strokeStyle = '#4a5a9a';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // ── Proyecciones ──
+  if (show.projections) {
+    // cos
+    ctx.beginPath(); ctx.moveTo(CX, CY); ctx.lineTo(px, CY);
+    ctx.strokeStyle = '#4ade80'; ctx.lineWidth = 2.5;
+    ctx.setLineDash([5, 3]); ctx.stroke(); ctx.setLineDash([]);
+    // sen
+    ctx.beginPath(); ctx.moveTo(px, CY); ctx.lineTo(px, py);
+    ctx.strokeStyle = '#f87171';
+    ctx.setLineDash([5, 3]); ctx.stroke(); ctx.setLineDash([]);
+
+    ctx.font = `bold ${fs}px Segoe UI`;
+    ctx.fillStyle = '#4ade80';
+    ctx.fillText('cos θ', (CX + px) / 2 - fs * 1.5, CY + fs + 2);
+    ctx.fillStyle = '#f87171';
+    ctx.fillText('sen θ', px + 4, (CY + py) / 2 + 4);
+  }
+
+  // ── Tangente ──
+  if (show.tangent && Math.abs(Math.cos(rad)) > 0.05) {
+    const tanVal = Math.tan(rad);
+    const ty = CY - R * tanVal;
+    ctx.beginPath(); ctx.moveTo(CX + R, CY); ctx.lineTo(CX + R, ty);
+    ctx.strokeStyle = '#facc15'; ctx.lineWidth = 2.5; ctx.stroke();
+
+    ctx.beginPath(); ctx.moveTo(CX, CY); ctx.lineTo(CX + R, ty);
+    ctx.strokeStyle = '#facc1540'; ctx.lineWidth = 1.5;
+    ctx.setLineDash([4, 4]); ctx.stroke(); ctx.setLineDash([]);
+
+    ctx.fillStyle = '#facc15';
+    ctx.font = `bold ${fs}px Segoe UI`;
+    ctx.fillText('tan θ', CX + R + 3, (CY + ty) / 2 + 4);
+  }
+
+  // ── Radio ──
+  ctx.beginPath(); ctx.moveTo(CX, CY); ctx.lineTo(px, py);
+  ctx.strokeStyle = '#7eb8f7'; ctx.lineWidth = 2.5; ctx.stroke();
+
+  // ── Ángulos notables ──
+  if (show.labels) {
+    [0,30,45,60,90,120,135,150,180,210,225,240,270,300,315,330].forEach(d => {
+      const r2 = d * Math.PI / 180;
+      const dist = R + fs * 1.6;
+      const lx = CX + dist * Math.cos(-r2);
+      const ly = CY + dist * Math.sin(-r2);
+      const isNear = Math.abs(angleDeg - d) < 3;
+      ctx.fillStyle = isNear ? '#fff' : '#5a6a8a';
+      ctx.font = isNear ? `bold ${fs + 1}px Segoe UI` : `${fs - 1}px Segoe UI`;
+      const label = d + '°';
+      ctx.fillText(label, lx - ctx.measureText(label).width / 2, ly + 4);
+
+      const t1x = CX + (R - 5) * Math.cos(-r2);
+      const t1y = CY + (R - 5) * Math.sin(-r2);
+      const t2x = CX + (R + 2) * Math.cos(-r2);
+      const t2y = CY + (R + 2) * Math.sin(-r2);
+      ctx.beginPath(); ctx.moveTo(t1x, t1y); ctx.lineTo(t2x, t2y);
+      ctx.strokeStyle = isNear ? '#fff' : '#3a4a6a';
+      ctx.lineWidth = isNear ? 2 : 1;
+      ctx.stroke();
+    });
+  }
+
+  // ── Punto ──
+  const dotR = Math.max(6, R * 0.032);
+  ctx.beginPath(); ctx.arc(px, py, dotR * 2, 0, 2 * Math.PI);
+  ctx.fillStyle = '#7eb8f720'; ctx.fill();
+  ctx.beginPath(); ctx.arc(px, py, dotR, 0, 2 * Math.PI);
+  ctx.fillStyle = '#7eb8f7'; ctx.fill();
+  ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.stroke();
+
+  // Coordenadas
+  const cosVal = Math.cos(rad);
+  const sinVal = Math.sin(rad);
+  const coordText = `(${fmt(cosVal)}, ${fmt(sinVal)})`;
+  ctx.font = `bold ${fs}px Segoe UI`;
+  const tw = ctx.measureText(coordText).width;
+  let tx = px + dotR + 4, ty2 = py - dotR - 4;
+  if (tx + tw > canvas.width - 4) tx = px - tw - dotR - 4;
+  if (ty2 < fs) ty2 = py + dotR + fs + 2;
+  ctx.fillStyle = '#ffffffcc';
+  ctx.fillText(coordText, tx, ty2);
+
+  // Origen
+  ctx.beginPath(); ctx.arc(CX, CY, 3, 0, 2 * Math.PI);
+  ctx.fillStyle = '#7eb8f7'; ctx.fill();
+
+  highlightNearestRow();
+}
+
+function drawArrow(x, y, size, angle) {
+  ctx.save();
+  ctx.translate(x, y); ctx.rotate(angle);
+  ctx.beginPath();
+  ctx.moveTo(0, 0); ctx.lineTo(-size, -size/2); ctx.lineTo(-size, size/2);
+  ctx.closePath();
+  ctx.fillStyle = '#3a3a6a'; ctx.fill();
+  ctx.restore();
+}
+
+function fmt(n) { return n.toFixed(3); }
+
+// ═══════════════════════════════════════════════════════
+//  PANEL
+// ═══════════════════════════════════════════════════════
+function updatePanel() {
+  const rad  = angleDeg * Math.PI / 180;
+  const cosV = Math.cos(rad);
+  const sinV = Math.sin(rad);
+  const tanV = Math.tan(rad);
+
+  document.getElementById('dispDeg').textContent    = angleDeg + '°';
+  document.getElementById('dispRad').textContent    = RAD_LABELS[angleDeg] || (rad.toFixed(4) + ' rad');
+  document.getElementById('dispRadDec').textContent = rad.toFixed(4) + ' rad';
+
+  const cosW = (cosV + 1) / 2 * 100;
+  document.getElementById('valCos').textContent = fmt(cosV);
+  document.getElementById('barCos').style.width = cosW + '%';
+  document.getElementById('barCos').style.background = cosV >= 0 ? '#4ade80' : '#f87171';
+
+  const sinW = (sinV + 1) / 2 * 100;
+  document.getElementById('valSin').textContent = fmt(sinV);
+  document.getElementById('barSin').style.width = sinW + '%';
+  document.getElementById('barSin').style.background = sinV >= 0 ? '#4ade80' : '#f87171';
+
+  const tanClamped = Math.max(-10, Math.min(10, tanV));
+  document.getElementById('valTan').textContent = Math.abs(tanV) > 99 ? '∞' : fmt(tanV);
+  document.getElementById('barTan').style.width = (tanClamped + 10) / 20 * 100 + '%';
+  document.getElementById('barTan').style.background = tanV >= 0 ? '#4ade80' : '#f87171';
+
+  // Cuadrante
+  ['q1','q2','q3','q4'].forEach(q => {
+    const el = document.getElementById(q);
+    el.classList.remove('active');
+    el.style.borderColor = '';
+    el.style.background = q === 'q1' || q === 'q2' ? '#1a2a1a' : '#2a1a1a';
+  });
+  const d = angleDeg % 360;
+  let activeQ = null;
+  if (d > 0   && d < 90)  activeQ = 'q1';
+  else if (d > 90  && d < 180) activeQ = 'q2';
+  else if (d > 180 && d < 270) activeQ = 'q3';
+  else if (d > 270 && d < 360) activeQ = 'q4';
+  if (activeQ) {
+    const el = document.getElementById(activeQ);
+    el.classList.add('active');
+    el.style.borderColor = '#c084fc';
+    el.style.background  = '#2a1a4a';
+  }
+}
+
+function highlightNearestRow() {
+  const rows = tbody.querySelectorAll('tr');
+  let nearestDiff = Infinity, nearestRow = null;
+  rows.forEach(tr => {
+    const diff = Math.abs(+tr.dataset.deg - angleDeg);
+    if (diff < nearestDiff) { nearestDiff = diff; nearestRow = tr; }
+  });
+  rows.forEach(tr => tr.classList.remove('highlighted'));
+  if (nearestDiff <= 3 && nearestRow) nearestRow.classList.add('highlighted');
+}
+
+// ═══════════════════════════════════════════════════════
+//  INTERACCIÓN
+// ═══════════════════════════════════════════════════════
+function getAngleFromEvent(e) {
+  const rect = canvas.getBoundingClientRect();
+  const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+  const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+  const x = (clientX - rect.left) * (canvas.width  / rect.width)  - CX;
+  const y = (clientY - rect.top)  * (canvas.height / rect.height) - CY;
+  let a = Math.atan2(-y, x) * 180 / Math.PI;
+  if (a < 0) a += 360;
+  return Math.round(a);
+}
+
+canvas.addEventListener('mousedown',  e => { dragging = true;  setAngle(getAngleFromEvent(e)); });
+canvas.addEventListener('mousemove',  e => { if (dragging) setAngle(getAngleFromEvent(e)); });
+canvas.addEventListener('mouseup',    () => { dragging = false; });
+canvas.addEventListener('mouseleave', () => { dragging = false; });
+
+canvas.addEventListener('touchstart', e => { e.preventDefault(); dragging = true; setAngle(getAngleFromEvent(e)); }, { passive: false });
+canvas.addEventListener('touchmove',  e => { e.preventDefault(); if (dragging) setAngle(getAngleFromEvent(e)); }, { passive: false });
+canvas.addEventListener('touchend',   () => { dragging = false; });
+
+function setAngle(a) {
+  angleDeg = ((Math.round(a) % 360) + 360) % 360;
+  syncSlider();
+  draw();
+  updatePanel();
+}
+
+// Slider
+const slider = document.getElementById('angleSlider');
+slider.addEventListener('input', () => {
+  angleDeg = +slider.value;
+  document.getElementById('sliderVal').textContent = angleDeg + '°';
+  draw();
+  updatePanel();
+});
+
+function syncSlider() {
+  slider.value = angleDeg;
+  document.getElementById('sliderVal').textContent = angleDeg + '°';
+}
+
+// Toggles
+document.querySelectorAll('.toggle-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const k = btn.dataset.key;
+    show[k] = !show[k];
+    btn.classList.toggle('on', show[k]);
+    draw();
+  });
+});
+
+// ═══════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════
+resizeCanvas();
+updatePanel();
+</script>
+</body>
+</html>
